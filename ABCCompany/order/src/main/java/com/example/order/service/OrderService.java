@@ -9,6 +9,7 @@ import com.example.order.dto.OrderDTO;
 import com.example.order.model.Orders;
 import com.example.order.repo.OrderRepo;
 
+import com.example.product.dto.ProductDTO;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,8 @@ import java.util.List;
 @Transactional
 public class OrderService {
 
-    private final WebClient webClient;
+    private final WebClient inventoryWebClient;
+    private final WebClient productWebClient;
 
     @Autowired
     private OrderRepo orderRepo;
@@ -31,9 +33,10 @@ public class OrderService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public OrderService(WebClient.Builder webClientBuilder , OrderRepo orderRepo, ModelMapper modelMapper) {
+    public OrderService(WebClient inventoryWebClient, WebClient productWebClient , OrderRepo orderRepo, ModelMapper modelMapper) {
 
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8080/api/v1").build();
+        this.inventoryWebClient= inventoryWebClient;
+        this.productWebClient = productWebClient;
         this.orderRepo = orderRepo;
         this.modelMapper = modelMapper;
     }
@@ -47,7 +50,7 @@ public class OrderService {
 
         Integer itemId = OrderDTO.getItemId();
         try {
-               InventoryDTO inventoryResponse = webClient.get()
+               InventoryDTO inventoryResponse = inventoryWebClient.get()
                     .uri(uriBuilder -> uriBuilder.path("/item/{itemId}").build(itemId))
                     .retrieve()
                     .bodyToMono(InventoryDTO.class)
@@ -55,10 +58,26 @@ public class OrderService {
 
                 assert  inventoryResponse!= null;
 
-            System.out.println(inventoryResponse);
+                Integer productId = inventoryResponse.getProductId();
+            ProductDTO productResponse = productWebClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/product/{productId}").build(productId))
+                    .retrieve()
+                    .bodyToMono(ProductDTO.class)
+                    .block();
+
+           /// System.out.println(inventoryResponse);
+
+            assert productResponse != null;
 
                if (inventoryResponse.getQuantity()> 0){
-                   orderRepo.save(modelMapper.map(OrderDTO,Orders.class));
+
+                   if(productResponse.getForSale()==1){
+                       orderRepo.save(modelMapper.map(OrderDTO,Orders.class));
+                   }
+                   else{
+                       return new ErrorOrderResponse("this item not for sale");
+                   }
+
                    return new SuccessOrderResponse(OrderDTO);
                }
                else{
