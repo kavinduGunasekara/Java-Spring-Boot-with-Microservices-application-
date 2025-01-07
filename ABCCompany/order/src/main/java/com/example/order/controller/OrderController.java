@@ -3,6 +3,7 @@ package com.example.order.controller;
 
 //import com.base.base.dto.OrderEventDTO;
 //import com.example.order.common.OrderResponse;
+import com.example.order.common.OrderResponse;
 import com.example.order.dto.OrderDTO;
 //import com.example.order.kafka.OrderProducer;
 //import com.example.order.service.OrderService;
@@ -35,7 +36,7 @@ public class OrderController {
     }
 
     @PostMapping("/addorder")
-    public OrderDTO saveOrder(@RequestBody OrderDTO orderDTO) {
+    public OrderResponse saveOrder(@RequestBody OrderDTO orderDTO) {
         return orderService.saveOrder(orderDTO);
     }
 

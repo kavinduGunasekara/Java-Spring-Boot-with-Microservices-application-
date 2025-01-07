@@ -2,6 +2,9 @@ package com.example.order.service;
 
 
 import com.example.inventory.dto.InventoryDTO;
+import com.example.order.common.ErrorOrderResponse;
+import com.example.order.common.OrderResponse;
+import com.example.order.common.SuccessOrderResponse;
 import com.example.order.dto.OrderDTO;
 import com.example.order.model.Orders;
 import com.example.order.repo.OrderRepo;
@@ -28,8 +31,11 @@ public class OrderService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public OrderService(WebClient webClient) {
-        this.webClient = webClient;
+    public OrderService(WebClient.Builder webClientBuilder , OrderRepo orderRepo, ModelMapper modelMapper) {
+
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8080/api/v1").build();
+        this.orderRepo = orderRepo;
+        this.modelMapper = modelMapper;
     }
 
 
@@ -37,30 +43,33 @@ public class OrderService {
         List<Orders>orderList = orderRepo.findAll();
         return modelMapper.map(orderList, new TypeToken<List<OrderDTO>>(){}.getType());
     }
-    public OrderDTO saveOrder(OrderDTO OrderDTO){
+    public OrderResponse saveOrder(OrderDTO OrderDTO){
 
         Integer itemId = OrderDTO.getItemId();
         try {
                InventoryDTO inventoryResponse = webClient.get()
-                    .uri(uriBuilder -> uriBuilder.path("http://localhost:8080/api/v1/item/{itemId}").build(itemId))
+                    .uri(uriBuilder -> uriBuilder.path("/item/{itemId}").build(itemId))
                     .retrieve()
                     .bodyToMono(InventoryDTO.class)
                     .block();
 
                 assert  inventoryResponse!= null;
 
+            System.out.println(inventoryResponse);
+
                if (inventoryResponse.getQuantity()> 0){
                    orderRepo.save(modelMapper.map(OrderDTO,Orders.class));
-                   return OrderDTO;
+                   return new SuccessOrderResponse(OrderDTO);
                }
                else{
-                   return "Item not available";
+                   return new ErrorOrderResponse("Item not available, please try later");
                }
         }
         catch(Exception e){
             e.printStackTrace();
 
         }
+        return null;
 
     }
 
