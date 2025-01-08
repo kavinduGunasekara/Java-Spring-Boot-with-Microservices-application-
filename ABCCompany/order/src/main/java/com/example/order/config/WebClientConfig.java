@@ -18,6 +18,6 @@ public class WebClientConfig {
 
     @Bean
     public WebClient productWebClient(){
-        return WebClient.builder().baseUrl("http://localhost:8082/api/v1").build();
+        return WebClient.builder().baseUrl("http://localhost:8084/api/v1").build();
     }
 }

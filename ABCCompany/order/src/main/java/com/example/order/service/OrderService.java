@@ -84,8 +84,10 @@ public class OrderService {
                    return new ErrorOrderResponse("Item not available, please try later");
                }
         }
-        catch(Exception e){
-            e.printStackTrace();
+        catch(WebClientResponseException e){
+            if(e.getStatusCode().is5xxServerError()){
+                return new ErrorOrderResponse("Item Not found");
+            }
 
         }
         return null;
